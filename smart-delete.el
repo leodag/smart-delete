@@ -97,7 +97,7 @@ deletion.")
                                (indent-according-to-mode)
                                (- (current-column) current-col))))
          (when (>= indent-offset 0)
-           (delete-char (+ indentation (- indent-offset) 1) killflag)
+           (delete-char (- indentation indent-offset 1) killflag)
            (when (smart-delete-only-indentation-before-point)
              (indent-according-to-mode)))))
    ;; Otherwise, do simple deletion.
