@@ -1,11 +1,11 @@
-;;; smart-delete.el --- IntelliJ-like backspace/delete
+;;; smart-delete.el --- IntelliJ-like backspace/delete -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020 Leonardo Dagnino
 
 ;; Author: Leonardo Schripsema
 ;; Created: 2020-06-13
 ;; Version: 0.1.0
-;; Keywords: delete, backspace
+;; Keywords: delete, backspace, indentation
 ;; URL: https://github.com/leodag/smart-delete
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -24,15 +24,17 @@
 ;;; Commentary:
 
 ;; Handle backspace/delete like IntelliJ IDEs.
-;; Does a simple deletion when:
+
+;; When `smart-delete-mode' is enabled, do a smart delete, unless:
 ;; * Called with an argument
 ;; * Inside a string literal
-;; * Have non-spacing characters before/after point, respectively
+;; * Have non-spacing characters before/after point (for
+;; backward/forward deletes, respectively)
 
 ;; Deletes region when region is active and delete-active-region
 ;; is non-nil.
 
-;; Otherwise does a smart delete:
+;; A smat delete consists of:
 
 ;; When smart deleting backward:
 ;; If after indentation level, go back to indentation
@@ -43,95 +45,95 @@
 ;; Delete spaces after point
 ;; Smart delete backward at next line
 
-;; Some ideas taken from https://github.com/itome/smart-backspace
-;; Most of the code was taken from `delete-forward-char' and
-;; `delete-backward-char'
-
 ;; Usage:
 
-;; (global-set-key (kbd "<backspace>") 'smart-delete-backward)
-;; (global-set-key (kbd "<delete>") 'smart-delete-forward)
+;; (smart-delete-mode 1)
+
+;; Some ideas taken from https://github.com/itome/smart-backspace
 
 ;;; Code:
 
-(defun smart-delete-only-indentation-before-point ()
+(defun smart-delete--only-space-before-point ()
+  "Nil if there is a non-space character before point. Returns
+the distance traveled if there isn't."
   (save-excursion
-    (let ((skip (skip-chars-backward " \t")))
+    (let ((skip (skip-syntax-backward " ")))
       (if (bolp)
           skip))))
 
-(defun smart-delete-only-spaces-after-point ()
+(defun smart-delete--only-space-after-point ()
+  "Nil if there is a non-space character after point. Returns the
+distance traveled if there isn't."
   (save-excursion
-    (let ((skip (skip-chars-forward " ")))
+    (let ((skip (skip-syntax-forward " ")))
       (if (eolp)
           skip))))
 
-(defvar smart-delete-simple-forward-function 'delete-forward-char
-  "Function to call when deleting forward and not using smart
-deletion.")
-
-(defvar smart-delete-simple-backward-function 'backward-delete-char-untabify
-  "Function to call when deleting backward and not using smart
-deletion.")
-
 (defun smart-delete-backward (n &optional killflag)
-  (interactive "*p\nP")
-  (cond
-   ;; With an argument, simple delete
-   ((not (= n 1))
-    (funcall smart-delete-simple-backward-function n killflag))
-   ;; If a region is active, kill or delete it.
-   ((and (use-region-p)
-         delete-active-region)
-    (if (eq delete-active-region 'kill)
-        (kill-region (region-beginning) (region-end) 'region)
-      (funcall region-extract-function 'delete-only)))
-   ;; If inside a string literal, simple deletion
-   ((nth 3 (syntax-ppss))
-    (funcall smart-delete-simple-backward-function n killflag))
-   ;; If only indentation before point, smart backspace
-   (#1=(smart-delete-only-indentation-before-point)
-       (let* ((indentation #1#)
-              (current-col (current-column))
-              (indent-offset (progn
-                               (indent-according-to-mode)
-                               (- (current-column) current-col))))
-         (when (>= indent-offset 0)
-           (delete-char (- indentation indent-offset 1) killflag)
-           (when (smart-delete-only-indentation-before-point)
-             (indent-according-to-mode)))))
-   ;; Otherwise, do simple deletion.
-   (t
-    (funcall smart-delete-simple-backward-function n killflag))))
+  "Does a smart delete backwards. Does not check for the
+conditions on whether a smart delete should be run - that is left
+to the keymap's filter. So don't bind this to a key."
+  (interactive "p\nP")
+  (let* ((indentation (smart-delete--only-space-before-point))
+         (current-col (current-column))
+         (indent-offset (progn
+                          (indent-according-to-mode)
+                          (- (current-column) current-col))))
+    (when (>= indent-offset 0)
+      (delete-char (- indentation indent-offset 1) killflag)
+      (when (smart-delete--only-space-before-point)
+        (indent-according-to-mode)))))
 
 (defun smart-delete-forward (n &optional killflag)
-  (interactive "*p\nP")
-  (cond
-   ;; With an argument, simple delete
-   ((not (= n 1))
-    (funcall smart-delete-simple-forward-function n killflag))
-   ;; If a region is active, kill or delete it.
-   ((and (use-region-p)
-         delete-active-region)
-    (if (eq delete-active-region 'kill)
-        (kill-region (region-beginning) (region-end) 'region)
-      (funcall region-extract-function 'delete-only)))
-   ;; If inside a string literal, simple deletion
-   ((nth 3 (syntax-ppss))
-    (funcall smart-delete-simple-forward-function n killflag))
-   ;; If only indentation before point, smart delete
-   (#1=(smart-delete-only-spaces-after-point)
-       (delete-char #1# killflag)
-       (let ((pre-column (current-column)))
-         (forward-line 1)
-         (smart-delete-backward n killflag)
-         (let ((offset (- pre-column (current-column))))
-           (message "%s" offset)
-           (when (> offset 0)
-             (insert-char ?\s offset)))))
-   ;; Otherwise, do simple deletion.
-   (t
-    (funcall smart-delete-simple-forward-function n killflag))))
+  "Does a smart delete forward. Does not check for the
+conditions on whether a smart delete should be run - that is left
+to the keymap's filter. So don't bind this to a key."
+  (interactive "p\nP")
+  (delete-char (smart-delete--only-space-after-point) killflag)
+  (let ((pre-column (current-column)))
+    (forward-char 1)
+    (smart-delete-backward n killflag)
+    (let ((offset (- pre-column (current-column))))
+      (when (> offset 0)
+        (insert-char ?\s offset)))))
+
+(defun smart-delete--should-smart-delete-backward-filter (cmd)
+  "Filter function to be used in a keymap to decide whether a
+  smart delete should be run."
+  (and (not prefix-arg)
+       (not (and (use-region-p)
+                 delete-active-region))
+       (not (nth 3 (syntax-ppss)))
+       (smart-delete--only-space-before-point)
+       cmd))
+
+(defun smart-delete--should-smart-delete-forward-filter (cmd)
+  "Filter function to be used in a keymap to decide whether a
+  smart delete should be run."
+  (and (not prefix-arg)
+       (not (and (use-region-p)
+                 delete-active-region))
+       (not (nth 3 (syntax-ppss)))
+       (smart-delete--only-space-after-point)
+       cmd))
+
+(defvar smart-delete-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "DEL")
+      `(menu-item
+        "" smart-delete-backward
+        :filter smart-delete--should-smart-delete-backward-filter))
+    (define-key map (kbd "<deletechar>")
+      `(menu-item
+        "" smart-delete-forward
+        :filter smart-delete--should-smart-delete-forward-filter))
+    map))
+
+;;;###autoload
+(define-minor-mode smart-delete-mode
+  "Does a smart delete when deleting forward in a line where
+  there is only space after point and when deleting backward when
+  there is only space before point.")
 
 (provide 'smart-delete)
 
