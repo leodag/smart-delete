@@ -34,7 +34,7 @@
 ;; Deletes region when region is active and delete-active-region
 ;; is non-nil.
 
-;; A smat delete consists of:
+;; A smart delete consists of:
 
 ;; When smart deleting backward:
 ;; If after indentation level, go back to indentation
