@@ -57,7 +57,8 @@
   "Nil if there is a non-space character before point. Returns
 the distance traveled if there isn't."
   (save-excursion
-    (let ((skip (skip-syntax-backward " ")))
+    ;; LIM is needed in case \n has " " syntax (as in SML mode)
+    (let ((skip (skip-syntax-backward " " (line-beginning-position))))
       (if (bolp)
           skip))))
 
@@ -65,7 +66,7 @@ the distance traveled if there isn't."
   "Nil if there is a non-space character after point. Returns the
 distance traveled if there isn't."
   (save-excursion
-    (let ((skip (skip-syntax-forward " ")))
+    (let ((skip (skip-syntax-forward " " (line-end-position))))
       (if (eolp)
           skip))))
 
