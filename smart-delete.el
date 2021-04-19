@@ -75,11 +75,13 @@ distance traveled if there isn't."
 conditions on whether a smart delete should be run - that is left
 to the keymap's filter. So don't bind this to a key."
   (interactive "p\nP")
+  ;; must operate relative to point - if you only consider
+  ;; columns, there will be problems when indent-tabs-mode
   (let* ((indentation (smart-delete--only-space-before-point))
-         (current-col (current-column))
+         (current-point (point))
          (indent-offset (progn
                           (indent-according-to-mode)
-                          (- (current-column) current-col))))
+                          (- (point) current-point))))
     (when (>= indent-offset 0)
       (delete-char (- indentation indent-offset 1) killflag)
       (when (smart-delete--only-space-before-point)
