@@ -55,8 +55,8 @@
 ;;; Code:
 
 (defun smart-delete--only-space-before-point ()
-  "Nil if there is a non-space character before point. Returns
-the distance traveled if there isn't."
+  "Nil if there is a non-space character before point.
+Returns the distance traveled if there isn't."
   (save-excursion
     ;; LIM is needed in case \n has " " syntax (as in SML mode)
     (let ((skip (skip-syntax-backward " " (line-beginning-position))))
@@ -64,17 +64,19 @@ the distance traveled if there isn't."
           skip))))
 
 (defun smart-delete--only-space-after-point ()
-  "Nil if there is a non-space character after point. Returns the
-distance traveled if there isn't."
+  "Nil if there is a non-space character after point.
+Returns the distance traveled if there isn't."
   (save-excursion
     (let ((skip (skip-syntax-forward " " (line-end-position))))
       (if (eolp)
           skip))))
 
 (defun smart-delete-backward (_n &optional killflag)
-  "Does a smart delete backwards. Does not check for the
-conditions on whether a smart delete should be run - that is left
-to the keymap's filter. So don't bind this to a key."
+  "Does a smart delete backwards.
+Does not check for the conditions on whether a smart delete
+should be run - that is left to the keymap's filter.  So don't
+bind this to a key.  Optional argument KILLFLAG is passed to
+`delete-char'."
   (interactive "p\nP")
   ;; must operate relative to point - if you only consider
   ;; columns, there will be problems when indent-tabs-mode
@@ -89,9 +91,12 @@ to the keymap's filter. So don't bind this to a key."
         (indent-according-to-mode)))))
 
 (defun smart-delete-forward (n &optional killflag)
-  "Does a smart delete forward. Does not check for the
-conditions on whether a smart delete should be run - that is left
-to the keymap's filter. So don't bind this to a key."
+  "Does a smart delete forward.
+Does not check for the conditions on whether a smart delete
+should be run - that is left to the keymap's filter.  So don't
+bind this to a key.  Argument N is passed to
+`smart-delete-backward' but is ultimately ignored.  Optional
+argument KILLFLAG is passed to `delete-char'."
   (interactive "p\nP")
   (delete-char (smart-delete--only-space-after-point) killflag)
   (let ((pre-column (current-column)))
@@ -102,8 +107,8 @@ to the keymap's filter. So don't bind this to a key."
         (insert-char ?\s offset)))))
 
 (defun smart-delete--should-smart-delete-backward-filter (cmd)
-  "Filter function to be used in a keymap to decide whether a
-  smart delete should be run."
+  "Filter function to decide whether a smart delete should be run.
+CMD is the real binding, see Info node `(elisp) Extended Menu Items'."
   (and (not prefix-arg)
        (not (and (use-region-p)
                  delete-active-region))
@@ -112,8 +117,8 @@ to the keymap's filter. So don't bind this to a key."
        cmd))
 
 (defun smart-delete--should-smart-delete-forward-filter (cmd)
-  "Filter function to be used in a keymap to decide whether a
-  smart delete should be run."
+  "Filter function to decide whether a smart delete should be run.
+CMD is the real binding, see Info node `(elisp) Extended Menu Items'."
   (and (not prefix-arg)
        (not (and (use-region-p)
                  delete-active-region))
@@ -135,9 +140,10 @@ to the keymap's filter. So don't bind this to a key."
 
 ;;;###autoload
 (define-minor-mode smart-delete-mode
-  "Does a smart delete when deleting forward in a line where
-  there is only space after point and when deleting backward when
-  there is only space before point.")
+  "Does a smart delete when at the end or start of a line.
+When deleting forward in a line where there is only space after
+point and when deleting backward when there is only space before
+point.")
 
 (provide 'smart-delete)
 
