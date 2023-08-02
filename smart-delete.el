@@ -71,7 +71,7 @@ distance traveled if there isn't."
       (if (eolp)
           skip))))
 
-(defun smart-delete-backward (n &optional killflag)
+(defun smart-delete-backward (_n &optional killflag)
   "Does a smart delete backwards. Does not check for the
 conditions on whether a smart delete should be run - that is left
 to the keymap's filter. So don't bind this to a key."
