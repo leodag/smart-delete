@@ -5,7 +5,8 @@
 ;; Author: Leonardo Schripsema
 ;; Created: 2020-06-13
 ;; Version: 0.1.0
-;; Keywords: delete, backspace, indentation
+;; Package-Requires: ((emacs "24.1"))
+;; Keywords: emulations, wp
 ;; URL: https://github.com/leodag/smart-delete
 
 ;; This program is free software; you can redistribute it and/or modify
